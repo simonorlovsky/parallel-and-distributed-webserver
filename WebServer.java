@@ -34,8 +34,10 @@ import java.io.*;
 import java.io.File;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
+import java.util.Date;
 
 public class WebServer {
+
     public static void main(String[] args) throws IOException {
 
         if (args.length != 1) {
@@ -44,8 +46,6 @@ public class WebServer {
         }
 
         String inputFilePath = args[0]+"/index.html";
-
-
         int portNumber = 8888;
 
         try (
@@ -56,29 +56,49 @@ public class WebServer {
             BufferedReader in = new BufferedReader(
                 new InputStreamReader(clientSocket.getInputStream()));
         ) {
-
-            String inputLine, outputLine;
-
             // Initiate conversation with client
+            // String request = "";
+            // String inputLine;
+            // while((inputLine = in.readLine()) != null) {
+            //   request += inputLine+"\r\n";
+            //   //System.out.println(request);
+            //   if(inputLine == null) {
+            //     System.out.println("NULL");
+            //   }
+            // }
+            // System.out.println("out");
+            out.println(processInput("",inputFilePath));
 
 
-            WebProtocol wp = new WebProtocol();
-            outputLine = wp.processInput(null, inputFilePath);
-            out.println(outputLine);
-
-            String request;
-
-            while ((inputLine = in.readLine()) != null) {
-                outputLine = wp.processInput(inputLine, inputFilePath);
-                out.println(outputLine);
-                
-                if (outputLine.equals("Bye."))
-                    break;
-            }
         } catch (IOException e) {
             System.out.println("Exception caught when trying to listen on port "
                 + portNumber + " or listening for a connection");
             System.out.println(e.getMessage());
         }
+    }
+
+    // Given input request and inputFilePath, return either a 404 response if the file was not found
+    // or a 200/OK along with the requested html
+    public static String processInput(String input, String inputFile) {
+      String theOutput = "";
+      Scanner scanner = null;
+      try {
+          scanner = new Scanner(new File(inputFile));
+      } catch (FileNotFoundException e) {
+          System.err.println(e);
+          return "HTTP/1.0 404 NOT FOUND\r\nDate: "+new Date() + "\r\nContent-Type: text/html\r\n\r\n"+
+          "<h1><b>404 FILE NOT FOUND</b></h1>";
+
+      }
+      int totalCount = 0;
+
+      while (scanner.hasNextLine()) {
+          System.out.println("still in loop");
+          String line = scanner.nextLine();
+          totalCount += line.length();
+          theOutput = theOutput+line;
+      }
+
+      return "HTTP/1.1 200 OK\r\nDate: "+(new Date()).toString() +"\r\nContent-Type: text/html\r\nContent-Length:"+totalCount+"\r\n\r\n"+theOutput;
     }
 }
