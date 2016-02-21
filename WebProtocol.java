@@ -63,21 +63,21 @@ public class WebProtocol {
         //       // the JVM tries to actually open the file, and thus this is
         //       // where an exception can occur. That's why there's a  you need to catch  the
         //       // exception.
-        //       Scanner scanner = null;
-        //       try {
-        //           scanner = new Scanner(inputFile);
-        //       } catch (FileNotFoundException e) {
-        //           System.err.println(e);
-        //           System.exit(1);
-        //       }
-        //
-        //       // Get one line at a time from the file, and print each line in upper
-        //       // case to standard output.
-        //       while (scanner.hasNextLine()) {
-        //           String line = scanner.nextLine();
-        //           theOutput+=line.toUpperCase();
-        //
-        //       }
+              Scanner scanner = null;
+              try {
+                  scanner = new Scanner(inputFile);
+              } catch (FileNotFoundException e) {
+                  System.err.println(e);
+                  System.exit(1);
+              }
+
+              // Get one line at a time from the file, and print each line in upper
+              // case to standard output.
+              while (scanner.hasNextLine()) {
+                  String line = scanner.nextLine();
+                  theOutput+=line.toUpperCase();
+
+              }
         //
         //         state = ANOTHER;
         //     } else {
