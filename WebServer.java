@@ -74,20 +74,42 @@ class ClientHandler extends Thread {
       // the same way.
       String filename = "";
       StringTokenizer st = new StringTokenizer(s);
+      String request = "";
       try {
         // Parse the filename from the GET command
-        if (st.hasMoreElements() && st.nextToken().equalsIgnoreCase("GET") && st.hasMoreElements())
+        if (st.hasMoreElements() && st.nextToken().equalsIgnoreCase("GET") && st.hasMoreElements()){
           filename = dir + st.nextToken();
-        else
-          throw new FileNotFoundException();  // Bad request
+          request = "GET";
+        }
+        else if (st.hasMoreElements() && st.nextToken().equalsIgnoreCase("HEAD") && st.hasMoreElements()){
+          filename = dir + st.nextToken();
+          request = "HEAD";
+        }
 
-        // Append trailing "/" with "index.html"
-        if (filename.endsWith("/"))
-          filename += "index.html";
-
-        // Remove leading / from filename
+        else {
+          out.println("HTTP/1.1 404 Not Found\r\n"+
+            "Content-type: text/html\r\n\r\n"+
+            "<html><body><h2>404 NOT FOUND</h2><p>"+filename+" not found</p></body></html>\n");
+          out.close();
+        }
         while (filename.indexOf("/")==0)
           filename = filename.substring(1);
+
+        // Append trailing "/" with "index.html"
+        if (filename.endsWith("/")){
+          if(new File(filename+"index.html").isFile()){
+            filename += "index.html";
+          }
+          else {
+            filename += "index.htm";
+          }
+        }
+
+
+
+
+        // Remove leading / from filename
+
 
         // Replace "/" with "\" in path for PC-based servers
         filename = filename.replace('/', File.separator.charAt(0));
@@ -97,8 +119,32 @@ class ClientHandler extends Thread {
             || filename.indexOf('|')>=0)
           throw new FileNotFoundException();
 
+          File inputFile = new File(filename);
+
+          // Create a Scanner object connected to your file. This is where
+          // the JVM tries to actually open the file, and thus this is
+          // where an exception can occur. That's why there's a  you need to catch  the
+          // exception.
+          Scanner scanner = null;
+          try {
+              scanner = new Scanner(inputFile);
+          } catch (FileNotFoundException e) {
+              System.err.println(e);
+              System.exit(1);
+          }
+
+          // Get one line at a time from the file, and print each line in upper
+          // case to standard output.
+          int numberOfChars = 0;
+          while (scanner.hasNextLine()) {
+              String line = scanner.nextLine();
+              numberOfChars+=line.length();
+          }
+
         // Open the file (may throw FileNotFoundException)
         InputStream f = new FileInputStream(filename);
+
+
 
         // Determine the MIME type and print HTTP header
         String mimeType="text/plain";
@@ -114,27 +160,36 @@ class ClientHandler extends Thread {
           mimeType = "text/css";
         else if (filename.endsWith(".js"))
           mimeType = "text/javascript";
-        out.print("HTTP/1.0 200 OK\r\n"+
-          "Content-type: "+mimeType+"\r\n\r\n");
+        out.print("HTTP/1.1 200 OK\r\n"+
+          "Content-type: "+mimeType+"\r\nDate: " + new Date() + "\r\n  Content-Length: "+numberOfChars+ "\r\n\r\n");
 
         // Send file contents to client, then close the connection
-        byte[] a = new byte[4096];
-        int n;
-        while ((n = f.read(a))>0)
-          out.write(a, 0, n);
-        out.close();
+        if (request.equals("GET")){
+          byte[] a = new byte[4096];
+          int n;
+          while ((n = f.read(a))>0)
+            out.write(a, 0, n);
+          out.close();
+        }
+
       }
       catch (FileNotFoundException e) {
-        out.println("HTTP/1.0 404 Not Found\r\n"+
+        out.println("HTTP/1.1 404 Not Found\r\n"+
           "Content-type: text/html\r\n\r\n"+
           "<html><body><h2>404 NOT FOUND</h2><p>"+filename+" not found</p></body></html>\n");
         out.close();
+
       }
       // If we hover over something that is not found on our computer, catch gracefully
       catch (NullPointerException e) {
-        out.println("HTTP/1.0 404 Not Found\r\n"+
+        out.println("HTTP/1.1 400 Bad Request\r\n"+
+          "Content-type: text/html\r\n\r\n");
+        out.close();
+      }
+      catch (IOException e) {
+        out.println("HTTP/1.1 403 Forbidden\r\n"+
           "Content-type: text/html\r\n\r\n"+
-          "<html><body>"+filename+" not found</body></html>\n");
+          "<html><body>"+filename+" Forbidden</body></html>\n");
         out.close();
       }
     }
